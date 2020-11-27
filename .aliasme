@@ -167,6 +167,9 @@ function setDirectoryPaths {
 #   None
 #######################################
 function sourceAliasFiles {
+	# record the directory to avoid
+	# doing this on every prompt change
+	LAST_ALIAS_DIR="$PWD"
 	local paths=()
 	compileAliasPathList paths || return $?
 	i=$((${#paths[@]} - 1))
@@ -184,6 +187,8 @@ function sourceAliasFiles {
 #   None
 #######################################
 function reSourceAliases {
-	unalias -a
-	source ~/.bash_profile
+	if [ "$LAST_ALIAS_DIR" != "$PWD" ]; then
+		unalias -a
+		source ~/.bash_profile
+	fi
 }
