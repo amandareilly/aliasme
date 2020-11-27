@@ -1,0 +1,189 @@
+#!bin/bash -e
+
+#######################################
+# Get a list of alias file paths in the
+#   current directory tree, ordered from
+#   most specific to least specific
+# Arguments:
+#   Return value, a variable.
+#   Assigns an array of file paths to
+#     the return value variable for use
+#     outside the function.
+#######################################
+function compileAliasPathList {
+	local -n pathsPointer=${1:-dummy}
+	# initialize / empty paths array
+	pathsPointer=()
+
+	# initialize local variables
+	local file=""
+	local current=""
+	local parent=""
+	local homeFound=1
+
+	# initialize current and parent variables
+	setDirectoryPaths current parent || return $?
+
+	# Prevent infinite loops by making sure
+	# that current and parent are not equal.
+	# This also provides a natural stopping
+	# point, because eventually we will run
+	# out of parents
+	while [[("$current" != "$parent")]]; do
+		if [[("$current" = "$HOME")]]; then
+			# if we are in user's home directory
+			# mark it as found so we don't try to
+			# include it again later
+			homeFound=0
+		fi
+		# Pass the file variable to the
+		# getAliasPathIfFileExists function.
+		#
+		# This sets file equal to the current
+		# directory's alias file path, if
+		# an alias file exists, otherwise it
+		# will be an empty string.
+		getAliasPathIfFileExists current file || return $?
+		if [ -n "$file" ]; then
+			# if we have a path, add it to
+			# the paths array
+			pathsPointer+=("$file")
+		fi
+
+		# move up to the parent directory
+		# and reset the pointers to reference
+		# the new working directory
+		setDirectoryPaths current parent || return $?
+	done
+
+	# if we didn't pass through HOME, attempt to
+	# include it here anyway
+	if [ $homeFound != 0 ]; then
+		getAliasPathIfFileExists HOME file || return $?
+		if [ -n "$file" ]; then
+			# if we have a path, add it to
+			# the paths array
+			pathsPointer+=("$file")
+		fi
+	fi
+
+	return 0
+}
+
+#######################################
+# Get a directory's alias path if a
+#   `.bash_aliases` file exists
+# Arguments:
+#	Directory Path, the path to the
+#     directory that we are checking
+#   Return value, a variable.
+#   Assigns the full alias file path to
+#     the provided return value variable
+#     if a `.bash_aliases` file exists in
+#     the current directory, otherwise
+#     assigns an empty string.
+#######################################
+function getAliasPathIfFileExists {
+	local -n dirPath=$1
+	local -n retVal=$2
+	local path="${dirPath}/.bash_aliases"
+
+	retVal=""
+	if [[ -f "$path" ]]; then
+		retVal="$path"
+	fi
+}
+
+#######################################
+# Set the path for the current
+#    directory's parent
+# Arguments:
+#   current, a variable
+#   parent, a variable
+#   Updates the parent directory by
+#     updating the passed variable based
+#     on the current directory
+#######################################
+function getParentPath {
+	local -n cPointer=$1
+	local -n pRetval=$2
+
+	if [ -z "$cPointer" ]; then
+		1>&2 echo "Current path is required!"
+		return 10
+	elif [ "$#" -lt 2 ]; then
+		1>&2 echo "Please provide an output variable as the second "
+		return 20
+	fi
+	pRetval=$(dirname "$cPointer")
+}
+
+#######################################
+# Set the path for the current directory
+#   to check
+# Arguments:
+#   current, a variable
+#   Updates the working directory by
+#     updating the passed variable.
+#######################################
+function setCurrentPath {
+	local -n cRetval=$1
+
+	if [ -z "$cRetval" ]; then
+		# current path not set,
+		# set it to current directory
+		cRetval=$PWD
+	else
+		# current path is set, so set it to
+		# its parent
+		getParentPath cRetval cRetval || return $?
+	fi
+}
+
+#######################################
+# Set paths for the current working
+#   directory and the directory's parent
+# Arguments:
+#   current, a variable
+#   parent, a variable
+#   Assigns the current working directory's
+#     path to the `current` variable and the
+#     current working directory parent's
+#     path to the `parent` variable
+#######################################
+function setDirectoryPaths {
+	local -n currentPath=$1
+	local -n parentPath=$2
+
+	setCurrentPath currentPath || return $?
+	getParentPath currentPath parentPath || return $?
+}
+
+#######################################
+# Add contents of alias files in the
+#  current directory tree to the sourced
+#  aliases
+# Arguments:
+#   None
+#######################################
+function sourceAliasFiles {
+	local paths=()
+	compileAliasPathList paths || return $?
+	i=$((${#paths[@]} - 1))
+	while [ $i -ge 0 ]; do
+		. ${paths[$i]}
+		((i--))
+	done
+}
+
+#######################################
+# Remove all current aliases and
+#   re-source the user's home
+#   ~/.bash_profile
+# Arguments:
+#   None
+#######################################
+function reSourceAliases {
+	unalias -a
+	source ~/.bash_profile
+}
