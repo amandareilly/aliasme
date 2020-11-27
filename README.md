@@ -37,11 +37,13 @@ In order to update aliases seamlessly when changing directories, we can set the 
    if [ -f ~/.bashrc ]; then . ~/.bashrc; fi
    ```
 4. In `~/.bashrc`, remove any lines referencing `~/.bash_aliases`, and add the following at the end of the file:
-```
-# include aliasme script
-if [ -f /usr/bin/aliasme/.aliasme ]; then
-    . /usr/bin/aliasme/.aliasme
-    sourceAliasFiles
-    PROMPT_COMMAND=reSourceAliases
-fi
-```
+    ```
+    # include aliasme script
+    if [ -f /usr/bin/aliasme/.aliasme ]; then
+        . /usr/bin/aliasme/.aliasme
+        sourceAliasFiles
+        # add reSource function to PROMPT_COMMAND
+        reSourceOnPromptCommand
+    fi
+    ```
+5. Close terminal and reopen it, or simply `source ~/.bash_profile`
