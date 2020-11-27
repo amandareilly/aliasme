@@ -22,9 +22,9 @@ Aliasme walks the directory tree, starting from the current directory, until it 
 
 It then imports each found file in order from least-specific (typically `~/.bash_aliases`) to most specific (`~/path/to/project/.bash_aliases`).  If it exists, the file in the user's home directory is always included, even if the current directory tree does not include the home directory.
 
-This means that if you define an alias in your home directory, you can redefine it in a subdirectory and the subdirectory version will take precedence.
+This means that if you define an alias in your home directory, you can redefine it anywhere else, and the updated version will take precedence in the directory where it is defined, as well as any subdirectories.
 
-In order to update aliases seamlessly when changing directories, we can set the `$PROMPT_COMMAND` variable.
+In order to update aliases seamlessly when changing directories, we add a helper function call to the `$PROMPT_COMMAND` variable that will check to see whether the directory has changed before a prompt is displayed.  If it has, it will remove all of the existing aliases and re-source `~/.bash_profile`.
 
 ## Usage
 1. Clone this repo in your location of choice.
