@@ -119,6 +119,22 @@ function getParentPath {
 }
 
 #######################################
+# Add reSource function to end of
+#   PROMPT_COMMAND if not present
+# Arguments:
+#   None
+#######################################
+function reSourceOnPromptCommand {
+	reSourceFunc=tryReSourceAliases
+	if ! grep -q $reSourceFunc <<< "$PROMPT_COMMAND"; then
+		if [ -n "$PROMPT_COMMAND" ] && [ "${PROMPT_COMMAND: -1}" != ";" ]; then
+			PROMPT_COMMAND="$PROMPT_COMMAND;"
+		fi
+		export PROMPT_COMMAND="$PROMPT_COMMAND"$reSourceFunc
+	fi
+}
+
+#######################################
 # Set the path for the current directory
 #   to check
 # Arguments:
@@ -180,13 +196,13 @@ function sourceAliasFiles {
 }
 
 #######################################
-# Remove all current aliases and
-#   re-source the user's home
-#   ~/.bash_profile
+# Remove all current aliases and re-source
+#   the user's home .bash_profile if the
+#   directory has changed
 # Arguments:
 #   None
 #######################################
-function reSourceAliases {
+function tryReSourceAliases {
 	if [ "$LAST_ALIAS_DIR" != "$PWD" ]; then
 		unalias -a
 		source ~/.bash_profile
